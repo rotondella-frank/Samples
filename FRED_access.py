@@ -11,8 +11,8 @@ jpy_usd = jpy_usd.rename(columns={0: 'EXJPUS'})
 oil_rate = pd.DataFrame(fred.get_series('PCEDG', observation_start='1971-01-01', index_col=0))
 oil_rate = oil_rate.rename(columns={0: 'oil'})
 
-usdrate=pd.DataFrame(fred.get_series('FEDFUNDS',observation_start = '2010-01-01',index_col=0))
-usdrate = usdrate.rename(columns={0: 'rate'})
+usd_rate = pd.DataFrame(fred.get_series('FEDFUNDS',observation_start = '2010-01-01',index_col=0))
+usd_rate = usdrate.rename(columns={0: 'rate'})
 
 
 # Merge the data frames based on the index (dates)
