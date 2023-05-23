@@ -2,7 +2,7 @@ import pandas as pd
 from fredapi import Fred
 
 # API initialization
-fred = Fred(api_key='24038268c5bd55ec155497b0079b5eb4')
+fred = Fred(api_key='xxxxx')
 
 # Retrieve data from FRED API
 jpy_usd = pd.DataFrame(fred.get_series('EXJPUS', observation_start='1971-01-01', index_col=0))
