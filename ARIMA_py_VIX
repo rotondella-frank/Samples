@@ -1,0 +1,1 @@
+This folder shows an example where I forecast the vix using an ARIMA model, which optimizes to find the best parameters for the given time period. This is inefficient in some ways, but is very comfortable for a technical user. 
