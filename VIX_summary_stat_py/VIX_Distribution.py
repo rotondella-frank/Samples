@@ -19,7 +19,7 @@ vix_10th_percentile = vix_data['VIXCLS'].quantile(0.1)
 vix_median = vix_data['VIXCLS'].median()
 
 # User-defined price threshold
-user_defined_threshold = 13  # You can change this threshold
+user_defined_threshold = 13  
 
 # Store Values in List
 print("90th Percentile:", vix_90th_percentile)
