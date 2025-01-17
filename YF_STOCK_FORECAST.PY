@@ -7,13 +7,6 @@ import matplotlib.image as mpimg
 import matplotlib.image as mpimg
 import matplotlib.dates as mdates
 
-
-
-# Load the background image
-background_image_path = '/Users/frankrotondella/Library/Mobile Documents/com~apple~CloudDocs/Documents/GitHub/Frank-Practice/intel_flag.png'  # Path to your background image
-background_img = mpimg.imread(background_image_path)
-
-
 # Load the CSV file for daily stock price data
 price_csv_path = '~/Downloads/CB (1).csv'
 brk_b_df = pd.read_csv(price_csv_path, parse_dates=['Date'], index_col='Date')
