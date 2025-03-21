@@ -8,14 +8,14 @@ import matplotlib.image as mpimg
 import matplotlib.dates as mdates
 
 # Load the CSV file for daily stock price data
-price_csv_path = '~/Downloads/CB (1).csv'
+price_csv_path = '~/Downloads/CZR (1).csv'
 brk_b_df = pd.read_csv(price_csv_path, parse_dates=['Date'], index_col='Date')
 
 # Resample the Adj Close column to quarterly data
 brk_b_df_quarterly = brk_b_df['Adj Close'].resample('Q').mean()
 
 # Load the CSV file into a DataFrame for profit/loss data (quarterly)
-csv_path = '~/Downloads/CB_quarterly_financials.csv'
+csv_path = '~/Downloads/CZR_quarterly_financials (1).csv'
 pl_hist_df = pd.read_csv(csv_path).apply(lambda x: x.str.strip().replace({'\$': '', ',': ''}, regex=True) if x.dtype == 'object' else x)
 
 # Filter rows based on 'name' column values and set the 'name' column as the index
@@ -45,11 +45,11 @@ pl_hist_df['NetProfitMargin'] = pl_hist_df['NetIncome'] / pl_hist_df['TotalReven
 pl_hist_df.fillna(0, inplace=True)
 
 # Load balance sheet data to calculate WACC
-balance_sheet_csv_path = '~/Downloads/CB_quarterly_balance-sheet.csv'
+balance_sheet_csv_path = '~/Downloads/CZR_quarterly_balance-sheet.csv'
 balance_sheet_df = pd.read_csv(balance_sheet_csv_path).apply(lambda x: x.str.strip().replace({'\$': '', ',': ''}, regex=True) if x.dtype == 'object' else x)
 
 # Filter relevant rows for debt and equity and set 'name' as the index
-balance_sheet_df = balance_sheet_df[balance_sheet_df['name'].isin(['TotalDebt', 'TotalEquityGrossMinorityInterest'])]
+balance_sheet_df = balance_sheet_df[balance_sheet_df['name'].isin(['TotalDebt', 'TotalEquityGrossMinorityInterest','TotalAssets','TotalLiabilitiesNetMinorityInterest'])]
 balance_sheet_df.set_index('name', inplace=True)
 
 # Transpose and convert index to datetime
@@ -61,8 +61,12 @@ all_quarters = pd.date_range(start=balance_sheet_df.index.min(), end=balance_she
 balance_sheet_df = balance_sheet_df.reindex(all_quarters).fillna(0)
 
 # Convert data to numeric
-balance_sheet_df['TotalDebt'] = pd.to_numeric(balance_sheet_df['TotalDebt'], errors='coerce')
-balance_sheet_df['TotalEquityGrossMinorityInterest'] = pd.to_numeric(balance_sheet_df['TotalEquityGrossMinorityInterest'], errors='coerce')
+balance_sheet_df['TotalDebt'] = pd.to_numeric(balance_sheet_df['TotalDebt'], errors='coerce').ffill()
+balance_sheet_df['TotalAssets'] = pd.to_numeric(balance_sheet_df['TotalAssets'], errors='coerce').ffill()
+balance_sheet_df['TotalEquityGrossMinorityInterest'] = pd.to_numeric(balance_sheet_df['TotalEquityGrossMinorityInterest'], errors='coerce').ffill()
+balance_sheet_df['TotalLiabilitiesNetMinorityInterest'] = pd.to_numeric(balance_sheet_df['TotalLiabilitiesNetMinorityInterest'], errors='coerce').ffill()
+
+
 
 # Drop any NaN values to avoid issues
 balance_sheet_df.fillna(0, inplace=True)
@@ -76,7 +80,7 @@ market = market.resample('Q').ffill() / 100  # Resample to quarterly and use the
 
 # CAPM Calculation
 expected_market_return = 0.10  # Assumed expected market return (can be adjusted)
-beta =.7  # Assumed beta value for the company (can be adjusted)
+beta =2.7  # Assumed beta value for the company (can be adjusted)
 
 # Calculate NPV with correct alignment to historical indices
 historical_npvs = []
@@ -170,7 +174,7 @@ for i in range(len(pl_hist_df)):
     forecast_df['DiscountedNetIncomePerShare'] = forecast_df['NetIncomePerShareForecast'] * forecast_df['DiscountFactor']
 
     # Terminal value calculation (using the last forecasted value)
-    price_to_sales_ratio =2
+    price_to_sales_ratio =.6
 
     terminal_value = (forecast_df['TotalRevenueForecast'].iloc[-1] * price_to_sales_ratio * 4) / forecast_df['DilutedAverageSharesForecast'].iloc[-1]
     terminal_value_discounted = terminal_value / ((1 + wacc) ** 5)
@@ -192,6 +196,57 @@ historical_npv_df['NPV'].fillna(0, inplace=True)
 
 
 
+
+###################################
+
+
+# Calculate Price-to-Book Ratio
+balance_sheet_df['BookValuePerShare'] = (balance_sheet_df['TotalAssets'] - balance_sheet_df['TotalLiabilitiesNetMinorityInterest']) / pl_hist_df['DilutedAverageShares']
+brk_b_df_quarterly = brk_b_df_quarterly.to_frame()
+brk_b_df_quarterly['PriceToBook'] = brk_b_df_quarterly['Adj Close'] / balance_sheet_df['BookValuePerShare']
+
+
+# Calculate z-scores for Price-to-Book ratios
+brk_b_df_quarterly['PriceToBookZScore'] = (brk_b_df_quarterly['PriceToBook'] - brk_b_df_quarterly['PriceToBook'].mean()) / brk_b_df_quarterly['PriceToBook'].std()
+
+# Trim outliers from the 'PriceToBook' column based on quantiles
+lower_quantile = 0.05  # 5th percentile
+upper_quantile = 0.95  # 95th percentile
+
+# Apply clipping to remove extreme outliers
+brk_b_df_quarterly['PriceToBookTrimmed'] = brk_b_df_quarterly['PriceToBook'].clip(
+    lower=brk_b_df_quarterly['PriceToBook'].quantile(lower_quantile),
+    upper=brk_b_df_quarterly['PriceToBook'].quantile(upper_quantile)
+)
+
+# Recalculate mean and standard deviation for the trimmed data
+mean_trimmed = brk_b_df_quarterly['PriceToBookTrimmed'].mean()
+std_trimmed = brk_b_df_quarterly['PriceToBookTrimmed'].std()
+
+# Calculate Z-scores for the trimmed data
+brk_b_df_quarterly['PriceToBookZScore'] = (
+    (brk_b_df_quarterly['PriceToBookTrimmed'] - mean_trimmed) / std_trimmed
+)
+
+# Apply the color mapping function based on the updated Z-scores
+def price_to_book_color(z_score):
+    if z_score < -.5:
+        return 'blue'  # Significantly undervalued
+    elif -.5 <= z_score <= .5:
+        return 'green'  # Fairly valued
+    else:
+        return 'red'  # Significantly overvalued
+
+brk_b_df_quarterly['Color'] = brk_b_df_quarterly['PriceToBookZScore'].apply(price_to_book_color)
+# Merge the 'Color' column from brk_b_df_quarterly into historical_npv_df
+historical_npv_df = historical_npv_df.merge(
+    brk_b_df_quarterly[['Color']], 
+    left_on='Date', 
+    right_index=True, 
+    how='left'
+)
+
+
 # Plot Revenue and Net Income
 fig1, ax1 = plt.subplots(figsize=(14, 8))
 
@@ -209,25 +264,23 @@ plt.show()
 # Plot Adj Close Price and NPV on the same axis
 fig2, ax2 = plt.subplots(figsize=(14, 8))
 
-# Adjust extent to match the full range of your data and make the image more aligned with the x-axis values
-image_extent = [brk_b_df_quarterly.index.min().toordinal(), brk_b_df_quarterly.index.max().toordinal(), 
-                brk_b_df_quarterly.min() * 0.9, brk_b_df_quarterly.max() * 1.1]
-
-# Plot Adj Close Price and NPV on the same axis
-fig2, ax2 = plt.subplots(figsize=(14, 8))
-
-# Plot Adj Close Price and NPV on the same axis
-fig2, ax2 = plt.subplots(figsize=(14, 8))
-
-# Plot Adj Close Price and NPV on the same y-axis
+# Plot Adj Close Price (Existing Plot)
 ax2.set_xlabel('Date')
 ax2.set_ylabel('Adj Close Price and NPV', color='orange')
-ax2.plot(brk_b_df_quarterly.index, brk_b_df_quarterly, color='orange', label='Adj Close Price', zorder=2)
-ax2.plot(historical_npv_df['Date'], historical_npv_df['NPV'], color='red', label='NPV', zorder=3)  # Increased zorder for visibility
+ax2.plot(brk_b_df_quarterly.index, brk_b_df_quarterly['Adj Close'], color='orange', label='Adj Close Price', zorder=2)
+
+for i in range(len(historical_npv_df) - 1):
+    if pd.notna(historical_npv_df['Color'].iloc[i]):  # Ensure there's a valid color to use
+        ax2.plot(
+            historical_npv_df['Date'].iloc[i:i + 2],
+            historical_npv_df['NPV'].iloc[i:i + 2],
+            color=historical_npv_df['Color'].iloc[i],  # Now correctly sourced from historical_npv_df
+            linewidth=2,
+            label='NPV' if i == 0 else ""
+        )
+
 ax2.tick_params(axis='y', labelcolor='orange')
 ax2.legend(loc='upper left')
-
-# Set tight layout for better fitting of content
 fig2.tight_layout()
 plt.show()
 
