@@ -8,14 +8,14 @@ import matplotlib.image as mpimg
 import matplotlib.dates as mdates
 
 # Load the CSV file for daily stock price data
-price_csv_path = '~/Downloads/CZR (1).csv'
+price_csv_path = '~/Downloads/HII (3).csv'
 brk_b_df = pd.read_csv(price_csv_path, parse_dates=['Date'], index_col='Date')
 
 # Resample the Adj Close column to quarterly data
 brk_b_df_quarterly = brk_b_df['Adj Close'].resample('Q').mean()
 
-# Load the CSV file into a DataFrame for profit/loss data (quarterly)
-csv_path = '~/Downloads/CZR_quarterly_financials (1).csv'
+# Load the CSV file into a DataFrame for profitloss data (quarterly)
+csv_path = '~/Downloads/HII_quarterly_financials (2).csv'
 pl_hist_df = pd.read_csv(csv_path).apply(lambda x: x.str.strip().replace({'\$': '', ',': ''}, regex=True) if x.dtype == 'object' else x)
 
 # Filter rows based on 'name' column values and set the 'name' column as the index
@@ -45,7 +45,7 @@ pl_hist_df['NetProfitMargin'] = pl_hist_df['NetIncome'] / pl_hist_df['TotalReven
 pl_hist_df.fillna(0, inplace=True)
 
 # Load balance sheet data to calculate WACC
-balance_sheet_csv_path = '~/Downloads/CZR_quarterly_balance-sheet.csv'
+balance_sheet_csv_path = '~/Downloads/HII_quarterly_balance-sheet (1).csv'
 balance_sheet_df = pd.read_csv(balance_sheet_csv_path).apply(lambda x: x.str.strip().replace({'\$': '', ',': ''}, regex=True) if x.dtype == 'object' else x)
 
 # Filter relevant rows for debt and equity and set 'name' as the index
@@ -80,7 +80,7 @@ market = market.resample('Q').ffill() / 100  # Resample to quarterly and use the
 
 # CAPM Calculation
 expected_market_return = 0.10  # Assumed expected market return (can be adjusted)
-beta =2.7  # Assumed beta value for the company (can be adjusted)
+beta =.50 # Assumed beta value for the company (can be adjusted)
 
 # Calculate NPV with correct alignment to historical indices
 historical_npvs = []
@@ -174,8 +174,7 @@ for i in range(len(pl_hist_df)):
     forecast_df['DiscountedNetIncomePerShare'] = forecast_df['NetIncomePerShareForecast'] * forecast_df['DiscountFactor']
 
     # Terminal value calculation (using the last forecasted value)
-    price_to_sales_ratio =.6
-
+    price_to_sales_ratio =.60
     terminal_value = (forecast_df['TotalRevenueForecast'].iloc[-1] * price_to_sales_ratio * 4) / forecast_df['DilutedAverageSharesForecast'].iloc[-1]
     terminal_value_discounted = terminal_value / ((1 + wacc) ** 5)
 
