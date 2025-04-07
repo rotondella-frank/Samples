@@ -1,0 +1,10 @@
+1.FINCNIAL REPORTING FOLDER####################################################################
+#1A. DFS stock valuation, a valuation of Discover Financial Services (DFS) stock. At this time the stock was selling for a steep discount amid regulatory compliance concern. After a review of their investor relations page and the attached financial report, I realized the business was selling for a steep discount and was able to earn x percent by owning over date z and p
+#1B. YF Stock Valuation, this forecasts net profits and discounts the business to present value based on input variables. Additionally the output color codes based on the historical price to book of the business so investors can quickly see if the premium on book value is statistically high, normal, or low based on a z score. HII stock has been used to demonstrate the functionality. *ChatGPT has been used to create and edit this code, all ideation and direction is at the beheast of Frank Rotondella*###############################################
+#1C.NFE bond one pager shows the estimated YTW and value proposition for the outlined distressed senior secured credit.############################################################# 
+2. TABLEAU/ POWERBI FOLDER####################################################################
+#2A. Tableau: A tableau file and accompanying screen shots of the reports on financial analaysis, map data, and sales reporting#######################################################
+#2B. PowerBi Free: A powerBI file and accompanying screenshots of census data used to report on tenant quality and population trends from available census api. *ChatGPT has been used to create and edit source code, all ideation and direction is at the beheast of Frank Rotondella*
+3.MISC INTERVIEW REQUESTS:#####################################################################
+#3A LSdirect requested an small case study, in which the data was not easily merging into one file. I leveraged this code to merge it into one file so it was easier to manipulate in excel. I have attached the code to show my ability to merge multiple data sets using python and sql.
+
