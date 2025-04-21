@@ -8,14 +8,14 @@ import matplotlib.image as mpimg
 import matplotlib.dates as mdates
 
 # Load the CSV file for daily stock price data
-price_csv_path = '~/Downloads/HII (3).csv'
+price_csv_path = '~/Downloads/HII (4).csv'
 brk_b_df = pd.read_csv(price_csv_path, parse_dates=['Date'], index_col='Date')
 
 # Resample the Adj Close column to quarterly data
 brk_b_df_quarterly = brk_b_df['Adj Close'].resample('Q').mean()
 
 # Load the CSV file into a DataFrame for profitloss data (quarterly)
-csv_path = '~/Downloads/HII_quarterly_financials (2).csv'
+csv_path = '~/Downloads/HII_quarterly_financials (1).csv'
 pl_hist_df = pd.read_csv(csv_path).apply(lambda x: x.str.strip().replace({'\$': '', ',': ''}, regex=True) if x.dtype == 'object' else x)
 
 # Filter rows based on 'name' column values and set the 'name' column as the index
@@ -80,10 +80,25 @@ market = market.resample('Q').ffill() / 100  # Resample to quarterly and use the
 
 # CAPM Calculation
 expected_market_return = 0.10  # Assumed expected market return (can be adjusted)
-beta =.50 # Assumed beta value for the company (can be adjusted)
+beta =.33 # Assumed beta value for the company (can be adjusted)
 
 # Calculate NPV with correct alignment to historical indices
 historical_npvs = []
+# --- Add this block before the loop starts ---
+# Ensure Adj Close is a DataFrame with a column name
+brk_b_df_quarterly = brk_b_df['Adj Close'].resample('Q').mean().to_frame(name='Adj Close')
+
+# Calculate Revenue per Share
+revenue_per_share_series = pl_hist_df['TotalRevenue']*4 / pl_hist_df['DilutedAverageShares']
+
+# Align stock price index to match financials
+aligned_prices = brk_b_df_quarterly['Adj Close'].reindex(pl_hist_df.index)
+
+# Compute historical Price-to-Sales ratio
+price_to_sales_series = aligned_prices / revenue_per_share_series
+
+# Take the median of valid values
+price_to_sales_ratio = price_to_sales_series.dropna().median()
 
 # Loop through each historical period to calculate NPV
 for i in range(len(pl_hist_df)):
@@ -135,7 +150,7 @@ for i in range(len(pl_hist_df)):
         equity_weight = total_equity / total_value
 
     # Tax Rate Assumption for WACC Calculation
-    tax_rate = 0.25
+    tax_rate = .26
 
     # Calculate WACC for the current quarter
     wacc =(equity_weight * cost_of_equity) + (debt_weight * cost_of_debt * (1 - tax_rate))
@@ -174,7 +189,6 @@ for i in range(len(pl_hist_df)):
     forecast_df['DiscountedNetIncomePerShare'] = forecast_df['NetIncomePerShareForecast'] * forecast_df['DiscountFactor']
 
     # Terminal value calculation (using the last forecasted value)
-    price_to_sales_ratio =.60
     terminal_value = (forecast_df['TotalRevenueForecast'].iloc[-1] * price_to_sales_ratio * 4) / forecast_df['DilutedAverageSharesForecast'].iloc[-1]
     terminal_value_discounted = terminal_value / ((1 + wacc) ** 5)
 
@@ -201,7 +215,6 @@ historical_npv_df['NPV'].fillna(0, inplace=True)
 
 # Calculate Price-to-Book Ratio
 balance_sheet_df['BookValuePerShare'] = (balance_sheet_df['TotalAssets'] - balance_sheet_df['TotalLiabilitiesNetMinorityInterest']) / pl_hist_df['DilutedAverageShares']
-brk_b_df_quarterly = brk_b_df_quarterly.to_frame()
 brk_b_df_quarterly['PriceToBook'] = brk_b_df_quarterly['Adj Close'] / balance_sheet_df['BookValuePerShare']
 
 
@@ -283,4 +296,4 @@ ax2.legend(loc='upper left')
 fig2.tight_layout()
 plt.show()
 
-print(wacc)
+print(wacc,price_to_sales_ratio)
